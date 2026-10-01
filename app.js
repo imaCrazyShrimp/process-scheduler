@@ -9,6 +9,7 @@ let processCount = 0;
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
   loadDefaultProcesses();
+  toggleQuantumInput();
 });
 
 function toggleQuantumInput() {
