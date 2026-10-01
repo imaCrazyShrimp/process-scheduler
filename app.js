@@ -127,7 +127,15 @@ function runSimulation() {
     return;
   }
 
-  // Placeholder for execution logic (Phase 2)
-  console.log('Running simulation with:', { algorithm, quantum, processes });
+  let simulationResult;
+  if (algorithm === 'RR') {
+    simulationResult = simulateRoundRobin(processes, quantum);
+  } else {
+    simulationResult = simulateSRTF(processes);
+  }
+
+  renderGanttChart(simulationResult.timeline);
+  renderResultsTable(simulationResult.result);
+
   document.getElementById('resultsSection').style.display = 'block';
 }
