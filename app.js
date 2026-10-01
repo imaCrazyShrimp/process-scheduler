@@ -53,7 +53,7 @@ function loadDefaultProcesses() {
   tbody.innerHTML = '';
   processCount = 0;
 
-  // Default set based on assignment example (>5 processes)
+  // Default process list based on doc requirements (>5 processes)
   const defaultData = [
     { arrival: 2, cpu: 1 },
     { arrival: 3, cpu: 5 },
@@ -118,7 +118,7 @@ function collectInputData() {
   return processes;
 }
 
-// ROUND ROBIN ALGORITHM (RONDA)
+// --- ALGORITHM 1: ROUND ROBIN (RONDA) ---
 function simulateRoundRobin(processes, quantum) {
   let currentTime = 0;
   let remainingProcesses = processes.map(p => ({
@@ -136,13 +136,13 @@ function simulateRoundRobin(processes, quantum) {
   let timeline = [];
   let completedCount = 0;
   let totalProcesses = remainingProcesses.length;
-  let arrivedMap = new Array(totalProcesses).fill(false); // FIXED: "new" instead of "nwe"
+  let arrivedMap = new Array(totalProcesses).fill(false);
 
   const checkArrivals = () => {
     for (let i = 0; i < totalProcesses; i++) {
       if (!arrivedMap[i] && remainingProcesses[i].arrival <= currentTime) {
         readyQueue.push(remainingProcesses[i]);
-        arrivedMap[i] = true; // FIXED: indexed array "arrivedMap[i]"
+        arrivedMap[i] = true;
       }
     }
   };
@@ -187,12 +187,136 @@ function simulateRoundRobin(processes, quantum) {
     } else {
       currentProcess.completionTime = currentTime;
       currentProcess.turnaroundTime = currentProcess.completionTime - currentProcess.arrival;
-      currentProcess.waitingTime = currentProcess.turnaroundTime - currentProcess.cpu; // FIXED: camelCase "waitingTime"
+      currentProcess.waitingTime = currentProcess.turnaroundTime - currentProcess.cpu;
       completedCount++;
     }
   }
 
   return { timeline, results: remainingProcesses };
+}
+
+// --- ALGORITHM 2: SHORT REMAINING TIME FIRST (SRTF) ---
+function simulateSRTF(processes) {
+  let currentTime = 0;
+  let remainingProcesses = processes.map(p => ({
+    ...p,
+    remainingCPU: p.cpu,
+    completionTime: 0,
+    turnaroundTime: 0,
+    waitingTime: 0
+  }));
+
+  let timeline = [];
+  let completedCount = 0;
+  let totalProcesses = remainingProcesses.length;
+  let lastProcessId = null;
+
+  while (completedCount < totalProcesses) {
+    // Find arrived process with shortest remaining time
+    let shortestIndex = -1;
+    let minRemaining = Infinity;
+
+    for (let i = 0; i < totalProcesses; i++) {
+      let p = remainingProcesses[i];
+      if (p.arrival <= currentTime && p.remainingCPU > 0) {
+        if (p.remainingCPU < minRemaining) {
+          minRemaining = p.remainingCPU;
+          shortestIndex = i;
+        }
+      }
+    }
+
+    if (shortestIndex === -1) {
+      currentTime++;
+      continue;
+    }
+
+    let p = remainingProcesses[shortestIndex];
+
+    // Merge execution timeline blocks for contiguous ticks of the same process
+    if (timeline.length > 0 && lastProcessId === p.id) {
+      timeline[timeline.length - 1].end++;
+    } else {
+      timeline.push({
+        id: p.id,
+        color: p.color,
+        start: currentTime,
+        end: currentTime + 1
+      });
+      lastProcessId = p.id;
+    }
+
+    p.remainingCPU--;
+    currentTime++;
+
+    if (p.remainingCPU === 0) {
+      p.completionTime = currentTime;
+      p.turnaroundTime = p.completionTime - p.arrival;
+      p.waitingTime = p.turnaroundTime - p.cpu;
+      completedCount++;
+    }
+  }
+
+  return { timeline, results: remainingProcesses };
+}
+
+// --- RENDER FUNCTIONS ---
+function renderGanttChart(timeline) {
+  const chartContainer = document.getElementById('ganttChart');
+  chartContainer.innerHTML = '';
+
+  timeline.forEach((block) => {
+    const duration = block.end - block.start;
+    const blockElement = document.createElement('div');
+    blockElement.className = 'gantt-block';
+    blockElement.style.backgroundColor = block.color;
+    blockElement.style.flex = duration;
+
+    blockElement.innerHTML = `
+      <span>${block.id}</span>
+      <span class="gantt-time">${block.start}-${block.end}</span>
+    `;
+
+    chartContainer.appendChild(blockElement);
+  });
+}
+
+function renderResultsTable(results) {
+  const tbody = document.getElementById('resultsTableBody');
+  const tfoot = document.getElementById('averagesRow');
+  tbody.innerHTML = '';
+
+  // Sort alphabetically by Process ID for clean presentation
+  results.sort((a, b) => a.id.localeCompare(b.id));
+
+  let totalTurnaround = 0;
+  let totalWaiting = 0;
+
+  results.forEach((p) => {
+    totalTurnaround += p.turnaroundTime;
+    totalWaiting += p.waitingTime;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="process-badge" style="background-color: ${p.color};">${p.id}</span></td>
+      <td>${p.arrival}</td>
+      <td>${p.cpu}</td>
+      <td>${p.completionTime}</td>
+      <td>${p.turnaroundTime}</td>
+      <td>${p.waitingTime}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const count = results.length;
+  const avgTurnaround = (totalTurnaround / count).toFixed(2);
+  const avgWaiting = (totalWaiting / count).toFixed(2);
+
+  tfoot.innerHTML = `
+    <td colspan="4"><strong>Promedios</strong></td>
+    <td><strong>${avgTurnaround}</strong></td>
+    <td><strong>${avgWaiting}</strong></td>
+  `;
 }
 
 function runSimulation() {
@@ -212,7 +336,7 @@ function runSimulation() {
   }
 
   renderGanttChart(simulationResult.timeline);
-  renderResultsTable(simulationResult.result);
+  renderResultsTable(simulationResult.results);
 
   document.getElementById('resultsSection').style.display = 'block';
 }
