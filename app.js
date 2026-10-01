@@ -118,6 +118,83 @@ function collectInputData() {
   return processes;
 }
 
+// ROUND ROBIN ALGORITHM (RONDA)
+function simulateRoundRobin(processes, quantum) {
+  let currentTime = 0;
+  let remainingProcesses = processes.map(p => ({
+    ...p,
+    remainingCPU: p.cpu,
+    completionTime: 0,
+    turnaroundTime: 0,
+    waitingTime: 0
+  }));
+
+  // Sort initially by arrival time
+  remainingProcesses.sort((a, b) => a.arrival - b.arrival);
+
+  let readyQueue = [];
+  let timeline = [];
+  let completedCount = 0;
+  let totalProcesses = remainingProcesses.length;
+  let arrivedMap = new Array(totalProcesses).fill(false); // FIXED: "new" instead of "nwe"
+
+  const checkArrivals = () => {
+    for (let i = 0; i < totalProcesses; i++) {
+      if (!arrivedMap[i] && remainingProcesses[i].arrival <= currentTime) {
+        readyQueue.push(remainingProcesses[i]);
+        arrivedMap[i] = true; // FIXED: indexed array "arrivedMap[i]"
+      }
+    }
+  };
+
+  checkArrivals();
+
+  while (completedCount < totalProcesses) {
+    if (readyQueue.length === 0) {
+      // Find next arrival time when CPU is idle
+      let nextArrival = Infinity;
+      for (let i = 0; i < totalProcesses; i++) {
+        if (!arrivedMap[i] && remainingProcesses[i].arrival < nextArrival) {
+          nextArrival = remainingProcesses[i].arrival;
+        }
+      }
+      if (nextArrival !== Infinity) {
+        currentTime = nextArrival;
+        checkArrivals();
+      }
+      continue;
+    }
+
+    let currentProcess = readyQueue.shift();
+    let execTime = Math.min(currentProcess.remainingCPU, quantum);
+
+    let startTime = currentTime;
+    currentTime += execTime;
+    currentProcess.remainingCPU -= execTime;
+
+    timeline.push({
+      id: currentProcess.id,
+      color: currentProcess.color,
+      start: startTime,
+      end: currentTime
+    });
+
+    // Queue any processes that arrived while this quantum was running
+    checkArrivals();
+
+    if (currentProcess.remainingCPU > 0) {
+      readyQueue.push(currentProcess);
+    } else {
+      currentProcess.completionTime = currentTime;
+      currentProcess.turnaroundTime = currentProcess.completionTime - currentProcess.arrival;
+      currentProcess.waitingTime = currentProcess.turnaroundTime - currentProcess.cpu; // FIXED: camelCase "waitingTime"
+      completedCount++;
+    }
+  }
+
+  return { timeline, results: remainingProcesses };
+}
+
 function runSimulation() {
   const algorithm = document.getElementById('algorithmSelect').value;
   const quantum = parseInt(document.getElementById('quantumInput').value);
