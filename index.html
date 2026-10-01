@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Planificación de Procesos</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <h1>Simulador de Planificación de Procesos</h1>
+  </header>
+
+  <main class="container">
+    <!-- Configuración del Algoritmo -->
+    <section class="card">
+      <h2>1. Configuración de Ejecución</h2>
+      <div class="form-group">
+        <label for="algorithmSelect">Algoritmo de Planificación:</label>
+        <select id="algorithmSelect" onchange="toggleQuantumInput()">
+          <option value="RR">Ronda (Round Robin)</option>
+          <option value="SRTF">Tiempo Restante Más Corto (SRTF)</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="quantumGroup">
+        <label for="quantumInput">Quantum (1 - 20):</label>
+        <input type="number" id="quantumInput" value="3" min="1" max="20">
+      </div>
+    </section>
+
+    <!-- Ingreso de Procesos -->
+    <section class="card">
+      <div class="card-header">
+        <h2>2. Lista de Procesos</h2>
+        <div class="button-group">
+          <button type="button" class="btn btn-secondary" onclick="loadDefaultProcesses()">Cargar Predeterminados (>5)</button>
+          <button type="button" class="btn btn-secondary" onclick="addProcessRow()">+ Agregar Proceso</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table id="processTable">
+          <thead>
+            <tr>
+              <th>Proceso</th>
+              <th>Tiempo de Llegada (0 - 20)</th>
+              <th>Tiempo de CPU (1 - 20)</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="processTableBody">
+            <!-- Filas dinámicas generadas mediante JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <button type="button" class="btn btn-primary btn-block" onclick="runSimulation()">Ejecutar Simulación</button>
+      <div id="errorMessage" class="error-banner" style="display: none;"></div>
+    </section>
+
+    <!-- Resultados: Gráfica de Gantt -->
+    <section class="card" id="resultsSection" style="display: none;">
+      <h2>3. Secuencia de Ejecución (Diagrama de Gantt)</h2>
+      <div id="ganttChart" class="gantt-chart"></div>
+
+      <h2>4. Tabla de Promedios</h2>
+      <div class="table-container">
+        <table id="resultsTable">
+          <thead>
+            <tr>
+              <th>Proceso</th>
+              <th>T. Llegada</th>
+              <th>T. CPU</th>
+              <th>T. Final</th>
+              <th>T. Retorno</th>
+              <th>T. Espera</th>
+            </tr>
+          </thead>
+          <tbody id="resultsTableBody"></tbody>
+          <tfoot>
+            <tr id="averagesRow"></tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
